@@ -1,6 +1,6 @@
 # 🚀 Frontend Test Agent VS Code 插件
 
-AI驱动的前端自动化测试工具，直接集成到VS Code中！
+✅ **现已完全支持！** AI驱动的前端自动化测试工具，直接集成到VS Code中！
 
 ## 🎯 核心功能
 

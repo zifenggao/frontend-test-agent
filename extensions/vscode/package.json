@@ -96,13 +96,21 @@
         "frontend-test-agent.defaultFramework": {
           "type": "string",
           "default": "react",
-          "enum": ["react", "vue", "angular"],
+          "enum": [
+            "react",
+            "vue",
+            "angular"
+          ],
           "description": "Default frontend framework"
         },
         "frontend-test-agent.defaultTestRunner": {
           "type": "string",
           "default": "jest",
-          "enum": ["jest", "cypress", "playwright"],
+          "enum": [
+            "jest",
+            "cypress",
+            "playwright"
+          ],
           "description": "Default test runner"
         },
         "frontend-test-agent.testOutputDirectory": {

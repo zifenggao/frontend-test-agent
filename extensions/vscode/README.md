@@ -1,6 +1,6 @@
 # 🚀 Frontend Test Agent VS Code Extension
 
-AI-powered frontend testing automation right in your VS Code!
+✅ **Fully Supported Now!** AI-powered frontend testing automation right in your VS Code!
 
 ## 🎯 Features
 
