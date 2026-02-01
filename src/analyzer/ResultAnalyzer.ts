@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'fs';
 import { logger } from '../utils/logger';
-import { RunResult } from '../core/Agent';
+
 
 export interface Issue {
   description: string;

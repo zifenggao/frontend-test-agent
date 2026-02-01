@@ -58,20 +58,20 @@ export class TestGenerator {
    */
   async generateTests(
     astResult: ASTParseResult,
-    testType: string,
+    _testType: string,
     model: string = 'gpt-4o-mini'
   ): Promise<GeneratedTests> {
     try {
-      logger.debug(`Generating ${testType} tests for ${astResult.componentName}...`);
+      logger.debug(`Generating tests for ${astResult.componentName}...`);
 
       if (this.openai) {
-        return await this.generateWithAI(astResult, testType, model);
+        return await this.generateWithAI(astResult, _testType, model);
       } else {
-        return this.generateMockTests(astResult, testType);
+        return this.generateMockTests(astResult, _testType);
       }
     } catch (error) {
       logger.error(`Failed to generate tests: ${(error as Error).message}`);
-      return this.generateMockTests(astResult, testType);
+      return this.generateMockTests(astResult, _testType);
     }
   }
 
@@ -174,7 +174,7 @@ Requirements:
    */
   private generateMockTests(
     astResult: ASTParseResult,
-    testType: string
+    _testType: string
   ): GeneratedTests {
     const testCases: TestCase[] = [];
 

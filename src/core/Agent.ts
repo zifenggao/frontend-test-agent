@@ -10,6 +10,7 @@ export interface GenerateOptions {
   type: string;
   output: string;
   model: string;
+  runner: string;
 }
 
 export interface RunOptions {

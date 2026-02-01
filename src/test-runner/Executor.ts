@@ -1,4 +1,4 @@
-import { exec, spawn } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '../utils/logger';
 import { fileUtils } from '../utils/file-utils';
@@ -12,8 +12,6 @@ export class TestExecutor {
    */
   async runTests(testDir: string, options: any): Promise<RunResult> {
     logger.info(`Running tests with ${options.runner}...`);
-
-    const startTime = Date.now();
 
     switch (options.runner.toLowerCase()) {
       case 'jest':
@@ -31,6 +29,7 @@ export class TestExecutor {
    * Run tests with Jest
    */
   private async runJestTests(testDir: string, options: any): Promise<RunResult> {
+    const startTime = Date.now();
     try {
       // Check if Jest is configured
       const hasJestConfig = await fileUtils.fileExists('jest.config.js') || 
@@ -54,7 +53,7 @@ export class TestExecutor {
       const fullCommand = `${command} ${args.join(' ')}`;
       logger.debug(`Running: ${fullCommand}`);
 
-      const { stdout, stderr } = await execPromise(fullCommand);
+      const { stderr } = await execPromise(fullCommand);
       
       if (stderr) {
         logger.warn(`Jest warnings: ${stderr}`);
@@ -84,7 +83,8 @@ export class TestExecutor {
   /**
    * Run tests with Cypress
    */
-  private async runCypressTests(testDir: string, options: any): Promise<RunResult> {
+  private async runCypressTests(testDir: string, _options: any): Promise<RunResult> {
+    const startTime = Date.now();
     try {
       // Check if Cypress is configured
       const hasCypressConfig = await fileUtils.fileExists('cypress.config.js') || 
@@ -105,7 +105,7 @@ export class TestExecutor {
       const fullCommand = `${command} ${args.join(' ')}`;
       logger.debug(`Running: ${fullCommand}`);
 
-      const { stdout, stderr } = await execPromise(fullCommand);
+      const { stderr } = await execPromise(fullCommand);
       
       if (stderr) {
         logger.warn(`Cypress warnings: ${stderr}`);
@@ -133,7 +133,8 @@ export class TestExecutor {
   /**
    * Run tests with Playwright
    */
-  private async runPlaywrightTests(testDir: string, options: any): Promise<RunResult> {
+  private async runPlaywrightTests(testDir: string, _options: any): Promise<RunResult> {
+    const startTime = Date.now();
     try {
       // Check if Playwright is configured
       const hasPlaywrightConfig = await fileUtils.fileExists('playwright.config.js') || 
@@ -154,7 +155,7 @@ export class TestExecutor {
       const fullCommand = `${command} ${args.join(' ')}`;
       logger.debug(`Running: ${fullCommand}`);
 
-      const { stdout, stderr } = await execPromise(fullCommand);
+      const { stderr } = await execPromise(fullCommand);
       
       if (stderr) {
         logger.warn(`Playwright warnings: ${stderr}`);

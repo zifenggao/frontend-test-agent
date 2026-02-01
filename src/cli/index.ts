@@ -167,7 +167,7 @@ program
     
     try {
       // Save configuration to config file
-      const config = {};
+      const config: any = {};
       if (options.apiKey) config['openaiApiKey'] = options.apiKey;
       if (options.model) config['defaultModel'] = options.model;
       if (options.framework) config['defaultFramework'] = options.framework;

@@ -1,6 +1,6 @@
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
-import * as types from '@babel/types';
+
 import { readFileSync } from 'fs';
 import { logger } from '../utils/logger';
 import { ASTParseResult } from '../ai/TestGenerator';
@@ -44,6 +44,7 @@ export class ASTParser {
       componentType: 'function'
     };
 
+    const self = this;
     traverse(ast, {
       // Extract imports
       ImportDeclaration(path) {
@@ -55,26 +56,26 @@ export class ASTParser {
 
       // Function component
       ArrowFunctionExpression(path) {
-        if (this.isReactComponent(path)) {
+        if (self.isReactComponent(path)) {
           result.componentType = 'function';
-          this.extractFunctionComponentProps(path, result);
+          self.extractFunctionComponentProps(path, result);
         }
       },
 
       FunctionDeclaration(path) {
-        if (this.isReactComponent(path)) {
+        if (self.isReactComponent(path)) {
           result.componentType = 'function';
           result.componentName = path.node.id?.name || result.componentName;
-          this.extractFunctionComponentProps(path, result);
+          self.extractFunctionComponentProps(path, result);
         }
       },
 
       // Class component
       ClassDeclaration(path) {
-        if (this.isReactClassComponent(path)) {
+        if (self.isReactClassComponent(path)) {
           result.componentType = 'class';
           result.componentName = path.node.id?.name || result.componentName;
-          this.extractClassComponentMembers(path, result);
+          self.extractClassComponentMembers(path, result);
         }
       }
     });
@@ -105,11 +106,12 @@ export class ASTParser {
           plugins: ['typescript']
         });
 
+        const self = this;
         traverse(ast, {
           ObjectExpression(path) {
             // Look for export default { ... }
             if (path.parentPath.isExportDefaultDeclaration()) {
-              this.extractVueComponentOptions(path, result);
+              self.extractVueComponentOptions(path, result);
             }
           }
         });
@@ -140,6 +142,7 @@ export class ASTParser {
         plugins: ['typescript', 'decorators-legacy']
       });
 
+      const self = this;
       traverse(ast, {
         ClassDeclaration(path) {
           // Look for @Component decorator
@@ -148,7 +151,7 @@ export class ASTParser {
           );
           
           if (decorator) {
-            this.extractAngularClassMembers(path, result);
+            self.extractAngularClassMembers(path, result);
           }
         }
       });
