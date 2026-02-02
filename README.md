@@ -277,7 +277,7 @@ describe('Button Component', () => {
 
 ## 🤝 贡献指南
 
-我们欢迎任何形式的贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详细信息。
+欢迎任何形式的贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详细信息。
 
 ### 开发环境搭建
 
@@ -302,13 +302,6 @@ npm run dev
 ## 📄 许可证
 
 本项目采用 [MIT License](LICENSE) 许可证。
-
-## 📞 联系方式
-
-- **GitHub Issues**: [提交问题](https://github.com/yourusername/frontend-test-agent/issues)
-- **Discord 社区**: [加入讨论](https://discord.gg/xxx)
-- **Twitter**: [@yourusername](https://twitter.com/yourusername)
-- **电子邮件**: your.email@example.com
 
 ## 🧩 VS Code插件详情
 

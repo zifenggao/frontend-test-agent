@@ -53,7 +53,7 @@
 ```bash
 # Download the VSIX file
 # Then run:
-code --install-extension frontend-test-agent-1.0.0.vsix
+code --install-extension frontend-test-agent-1.0.2.vsix
 ```
 
 ### Setup
