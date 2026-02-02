@@ -53,7 +53,7 @@
 ```bash
 # 下载VSIX文件
 # 然后运行：
-code --install-extension frontend-test-agent-1.0.0.vsix
+code --install-extension frontend-test-agent-1.0.2.vsix
 ```
 
 ### 配置

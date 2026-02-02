@@ -1,5 +1,17 @@
 import OpenAI from 'openai';
 import { logger } from '../utils/logger';
+import fetch from 'node-fetch';
+
+// 模型厂商类型
+export type ModelProvider = 'openai' | 'volcengine' | 'anthropic' | 'google';
+
+// 模型配置接口
+export interface ModelConfig {
+  provider: ModelProvider;
+  apiKey: string;
+  model: string;
+  baseUrl?: string;
+}
 
 export interface ASTParseResult {
   componentName: string;
@@ -42,15 +54,65 @@ export interface GeneratedTests {
 
 export class TestGenerator {
   private openai: OpenAI | null = null;
+  private volcengineClient: any = null;
+  private modelConfig: ModelConfig | null = null;
 
-  constructor() {
-    // Initialize OpenAI client if API key is available
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
+  constructor(modelConfig?: ModelConfig) {
+    if (modelConfig) {
+      this.modelConfig = modelConfig;
+      this.initializeModelClient(modelConfig);
     } else {
-      logger.warn('OpenAI API key not found. Will use mock test generation.');
+      // Initialize with default OpenAI config if API key is available
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (apiKey) {
+        const defaultConfig: ModelConfig = {
+          provider: 'openai',
+          apiKey,
+          model: 'gpt-4o-mini'
+        };
+        this.modelConfig = defaultConfig;
+        this.initializeModelClient(defaultConfig);
+      } else {
+        logger.warn('No model API key found. Will use mock test generation.');
+      }
     }
+  }
+
+  /**
+   * Initialize model client based on provider
+   */
+  private initializeModelClient(config: ModelConfig): void {
+    switch (config.provider) {
+      case 'openai':
+        this.openai = new OpenAI({ 
+          apiKey: config.apiKey,
+          baseURL: config.baseUrl
+        });
+        break;
+      case 'volcengine':
+        this.initializeVolcengineClient(config);
+        break;
+      case 'anthropic':
+      case 'google':
+        logger.info(`${config.provider} model client initialized`);
+        break;
+      default:
+        logger.warn(`Unsupported model provider: ${config.provider}`);
+    }
+  }
+
+  /**
+   * Initialize Volcengine client
+   */
+  private initializeVolcengineClient(config: ModelConfig): void {
+    // For now, we'll use a simple HTTP client approach
+    // In production, you would use the official Volcengine SDK
+    this.volcengineClient = {
+      apiKey: config.apiKey,
+      baseUrl: config.baseUrl || 'https://ark.cn-beijing.volces.com/api/v3',
+      model: config.model
+    };
+    logger.info('Volcengine model client initialized');
   }
 
   /**
@@ -59,13 +121,13 @@ export class TestGenerator {
   async generateTests(
     astResult: ASTParseResult,
     _testType: string,
-    model: string = 'gpt-4o-mini'
+    model?: string
   ): Promise<GeneratedTests> {
     try {
       logger.debug(`Generating tests for ${astResult.componentName}...`);
 
-      if (this.openai) {
-        return await this.generateWithAI(astResult, _testType, model);
+      if (this.modelConfig && this.openai) {
+        return await this.generateWithAI(astResult, _testType, model || this.modelConfig.model);
       } else {
         return this.generateMockTests(astResult, _testType);
       }
@@ -76,7 +138,7 @@ export class TestGenerator {
   }
 
   /**
-   * Generate tests using AI (OpenAI API)
+   * Generate tests using AI
    */
   private async generateWithAI(
     astResult: ASTParseResult,
@@ -85,6 +147,35 @@ export class TestGenerator {
   ): Promise<GeneratedTests> {
     const prompt = this.createTestGenerationPrompt(astResult, testType);
 
+    let response = '';
+    
+    if (this.modelConfig) {
+      switch (this.modelConfig.provider) {
+        case 'openai':
+          response = await this.generateWithOpenAI(prompt, model);
+          break;
+        case 'volcengine':
+          response = await this.generateWithVolcengine(prompt, model);
+          break;
+        case 'anthropic':
+        case 'google':
+          // Will be implemented later
+          logger.warn(`Model provider ${this.modelConfig.provider} not fully implemented. Using mock response.`);
+          response = this.generateMockAIResponse(astResult);
+          break;
+        default:
+          logger.warn(`Unsupported model provider: ${this.modelConfig.provider}`);
+          response = this.generateMockAIResponse(astResult);
+      }
+    }
+
+    return this.parseAIResponse(response, astResult);
+  }
+
+  /**
+   * Generate tests using OpenAI API
+   */
+  private async generateWithOpenAI(prompt: string, model: string): Promise<string> {
     const completion = await this.openai!.chat.completions.create({
       model,
       messages: [
@@ -98,8 +189,67 @@ export class TestGenerator {
       max_tokens: 2000
     });
 
-    const response = completion.choices[0].message.content || '';
-    return this.parseAIResponse(response, astResult);
+    return completion.choices[0].message.content || '';
+  }
+
+  /**
+   * Generate tests using Volcengine API
+   */
+  private async generateWithVolcengine(prompt: string, model: string): Promise<string> {
+    try {
+      if (!this.volcengineClient) {
+        throw new Error('Volcengine client not initialized');
+      }
+
+      const response = await fetch(`${this.volcengineClient.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.volcengineClient.apiKey}`
+        },
+        body: JSON.stringify({
+          model: model || this.volcengineClient.model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert frontend testing engineer specializing in React, Vue, and Angular. Generate comprehensive, high-quality test cases based on component analysis.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Volcengine API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content || '';
+    } catch (error) {
+      logger.error(`Failed to generate tests with Volcengine: ${(error as Error).message}`);
+      // Fallback to mock response if API call fails
+      return this.generateMockAIResponse({ componentName: 'TestComponent' } as ASTParseResult);
+    }
+  }
+
+  /**
+   * Generate mock AI response for testing
+   */
+  private generateMockAIResponse(astResult: ASTParseResult): string {
+    return `### Test Case 1: Renders correctly
+Tests that the component renders without errors
+
+\`\`\`javascript
+it('renders correctly', () => {
+  const { getByTestId } = render(<${astResult.componentName} />);
+  expect(getByTestId('${astResult.componentName.toLowerCase()}')).toBeInTheDocument();
+});
+\`\`\``;
   }
 
   /**

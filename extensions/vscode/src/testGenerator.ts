@@ -1,16 +1,15 @@
 import * as vscode from 'vscode';
 import { OpenAI } from 'openai';
+import fetch from 'node-fetch';
+
+// 模型厂商类型
+type ModelProvider = 'openai' | 'volcengine' | 'anthropic' | 'google';
 
 export class TestGenerator {
-    private openai: OpenAI | undefined;
     private config: vscode.WorkspaceConfiguration;
 
     constructor(config: vscode.WorkspaceConfiguration) {
         this.config = config;
-        const apiKey = config.get<string>('openaiApiKey');
-        if (apiKey) {
-            this.openai = new OpenAI({ apiKey });
-        }
     }
 
     async generateTest(
@@ -18,40 +17,100 @@ export class TestGenerator {
         framework: string,
         fileName: string
     ): Promise<string> {
-        if (!this.openai) {
-            throw new Error('OpenAI API key not configured. Please set it in extension settings.');
-        }
-
-        const testRunner = this.config.get<string>('defaultTestRunner', 'jest');
+        // 每次调用时重新获取最新配置
+        const updatedConfig = vscode.workspace.getConfiguration('frontend-test-agent');
+        const testRunner = updatedConfig.get<string>('defaultTestRunner', 'jest');
+        const modelProvider = updatedConfig.get<ModelProvider>('modelProvider', 'openai');
         const prompt = this.generatePrompt(content, framework, testRunner, fileName);
 
         try {
-            const completion = await this.openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are an expert frontend test developer specialized in ${framework} and ${testRunner}.
-                        Write comprehensive, production-ready tests that follow best practices.
-                        Include detailed comments and ensure all edge cases are covered.
-                        Make sure the tests are runnable without modification.`
-                    },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7,
-                max_tokens: 2000
-            });
+            let testContent: string;
+            
+            switch (modelProvider) {
+                case 'openai':
+                    testContent = await this.generateWithOpenAI(prompt, updatedConfig);
+                    break;
+                case 'volcengine':
+                    testContent = await this.generateWithVolcengine(prompt, updatedConfig);
+                    break;
+                case 'anthropic':
+                case 'google':
+                    throw new Error(`${modelProvider} is not fully implemented yet.`);
+                default:
+                    throw new Error(`Unsupported model provider: ${modelProvider}`);
+            }
 
-            const testContent = completion.choices[0].message.content;
             if (!testContent) {
                 throw new Error('No test content generated from AI.');
             }
 
             return this.formatTestContent(testContent);
         } catch (error) {
-            console.error('OpenAI API error:', error);
+            console.error('API error:', error);
             throw new Error(`Failed to generate tests: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
+    }
+
+    private async generateWithOpenAI(prompt: string, config: vscode.WorkspaceConfiguration): Promise<string> {
+        const apiKey = config.get<string>('openaiApiKey');
+        if (!apiKey) {
+            throw new Error('OpenAI API key not configured. Please set it in extension settings.');
+        }
+
+        const model = config.get<string>('openaiModel', 'gpt-3.5-turbo');
+        const openai = new OpenAI({ apiKey });
+        
+        const completion = await openai.chat.completions.create({
+            model,
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an expert frontend test developer. Write comprehensive, production-ready tests that follow best practices.'
+                },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 2000
+        });
+
+        return completion.choices[0].message.content || '';
+    }
+
+    private async generateWithVolcengine(prompt: string, config: vscode.WorkspaceConfiguration): Promise<string> {
+        const apiKey = config.get<string>('volcengineApiKey');
+        if (!apiKey) {
+            throw new Error('Volcengine API key not configured. Please set it in extension settings.');
+        }
+
+        const model = config.get<string>('volcengineModel', 'ep-20240722180546-xqxzh');
+        const baseUrl = config.get<string>('volcengineBaseUrl', 'https://ark.cn-beijing.volces.com/api/v3');
+        
+        const response = await fetch(`${baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are an expert frontend test developer. Write comprehensive, production-ready tests that follow best practices.'
+                    },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 2000
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Volcengine API error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content || '';
     }
 
     private generatePrompt(

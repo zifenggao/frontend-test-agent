@@ -63,7 +63,7 @@ npm install --save-dev frontend-test-agent
 #### 方式3：从VSIX安装
 ```bash
 # 下载VSIX文件
-code --install-extension frontend-test-agent-1.0.0.vsix
+code --install-extension frontend-test-agent-1.0.2.vsix
 ```
 
 ### 基本使用

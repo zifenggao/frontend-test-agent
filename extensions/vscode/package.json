@@ -2,8 +2,8 @@
   "name": "frontend-test-agent",
   "displayName": "Frontend Test Agent",
   "description": "AI-powered frontend testing automation right in your VS Code",
-  "version": "1.0.0",
-  "publisher": "yourpublisher",
+  "version": "1.0.2",
+  "publisher": "zifenggao",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -88,10 +88,41 @@
     "configuration": {
       "title": "Frontend Test Agent",
       "properties": {
+        "frontend-test-agent.modelProvider": {
+          "type": "string",
+          "default": "openai",
+          "enum": [
+            "openai",
+            "volcengine",
+            "anthropic",
+            "google"
+          ],
+          "description": "AI model provider for test generation"
+        },
         "frontend-test-agent.openaiApiKey": {
           "type": "string",
           "default": "",
           "description": "OpenAI API key for AI-powered test generation"
+        },
+        "frontend-test-agent.openaiModel": {
+          "type": "string",
+          "default": "gpt-3.5-turbo",
+          "description": "OpenAI model to use for test generation"
+        },
+        "frontend-test-agent.volcengineApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Volcengine API key for AI-powered test generation"
+        },
+        "frontend-test-agent.volcengineModel": {
+          "type": "string",
+          "default": "ep-20240722180546-xqxzh",
+          "description": "Volcengine model to use for test generation"
+        },
+        "frontend-test-agent.volcengineBaseUrl": {
+          "type": "string",
+          "default": "https://ark.cn-beijing.volces.com/api/v3",
+          "description": "Volcengine API base URL"
         },
         "frontend-test-agent.defaultFramework": {
           "type": "string",
